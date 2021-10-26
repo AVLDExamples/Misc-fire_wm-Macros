@@ -1,0 +1,71 @@
+#!/usr/bin/python
+#
+# Surface_Patches_not_in_BND_.macro
+#
+# (C) Carsten Schmalhorst,
+# AVL Deutschland GmbH, 2011-2020
+#
+# All rights reserved. No part of this publication may be reproduced, transmitted, transcribed, stored in a
+# retrieval system or translated into any language or computer language, in any form or by any means,
+# electronic, mechanical, magnetic, optical, chemical, manual or otherwise, without prior written consent
+# of AVL.
+
+# This document describes how to run the above-mentioned tool in the context of a regular 
+# AVL AST Software installation environment. It does not attempt to discuss all the concepts of computer 
+# simulation required to obtain successful solutions. It is the users responsibility to determine if 
+# he/she has enough knowledge and understanding of his/her task to apply this software appropriately.
+
+# This software and document are distributed solely on an "as is" basis. The entire risk as to their quality
+# and performance is with the user. Should either the software or this document proves defective, the
+# user assumes the entire cost of all necessary servicing, repair, or correction. AVL and its distributors
+# will not be liable for direct, indirect, incidental, or consequential damages resulting from any defect in
+# the software or this document, even if they have been advised of the possibility of such damage.
+#___________________________________________________________________________
+meshName = GuiGetActiveMesh()
+first = True
+if len(meshName)>0:
+    GuiInfoMessage("Proceesing mesh named:")
+    GuiInfoMessage(meshName)
+#    print SelNamesWithTypes(meshName)
+    sansSelections=SelNames(meshName)
+
+    if "RestSel" in sansSelections:
+        SelClearSel(meshName, "RestSel")
+    else:
+        SelNewSel( meshName, "RestSel", "FaceSelection")
+
+    #populate RestSel
+    # first, make sure no selection is active any more...
+    for sel in sansSelections:
+        print "Deactive ", sel
+        SelDeActivate(meshName, sel)
+    # second, get extents of mesh
+    bbox = PreGetBoundingBox(meshName)
+    dx = (bbox[3] - bbox[0])*0.05
+    dy = (bbox[4] - bbox[1])*0.05
+    # third, add all exterior faces within bounding box +5%
+    PreResetPoly()
+    PreAddPolyPoint( bbox[0]-dx, bbox[1]-dy, 0);
+    PreAddPolyPoint( bbox[0]-dx, bbox[4]+dy, 0);
+    PreAddPolyPoint( bbox[3]+dx, bbox[4]+dy, 0 );
+    PreAddPolyPoint( bbox[3]+dx, bbox[1]-dy, 0 );
+    PreSetPolyNormal( 0.0, 0.0, 1 );
+    SelAddToSelWithPoly( meshName,"RestSel",2 );
+
+    while len(sansSelections) > 0:
+        cSel = sansSelections.pop()
+        if SelType(meshName, cSel) == "FaceSelection" and (cSel.startswith("BND") or cSel.startswith("BC")):
+            SelSel_SANS_Sel( meshName, "RestSel", "RestSel", cSel)
+
+    if SelGetSizeofRegion(meshName, "RestSel")>0:
+        SelActivate(meshName, "RestSel")
+        PreCalcSurface(meshName)
+        GuiUpdate(0,0)
+else:
+    GuiErrorMessage( "------------------------------------------" )
+    GuiErrorMessage( "------------------------------------------" )
+    GuiErrorMessage( "---------- no mesh selected!!!! ----------" )
+    GuiErrorMessage( "------------------------------------------" )
+    GuiErrorMessage( "------------------------------------------" )
+
+

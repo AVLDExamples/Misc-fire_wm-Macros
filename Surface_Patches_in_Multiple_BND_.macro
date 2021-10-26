@@ -1,0 +1,63 @@
+#!/usr/bin/python
+#
+# Surface_Patches_in_Mulitple_BND_.macro
+#
+# (C) Carsten Schmalhorst
+# AVL Deutschland GmbH, 2012-2020
+#
+# All rights reserved. No part of this publication may be reproduced, transmitted, transcribed, stored in a
+# retrieval system or translated into any language or computer language, in any form or by any means,
+# electronic, mechanical, magnetic, optical, chemical, manual or otherwise, without prior written consent
+# of AVL.
+
+# This document describes how to run the above-mentioned tool in the context of a regular 
+# AVL AST Software installation environment. It does not attempt to discuss all the concepts of computer 
+# simulation required to obtain successful solutions. It is the users responsibility to determine if 
+# he/she has enough knowledge and understanding of his/her task to apply this software appropriately.
+
+# This software and document are distributed solely on an "as is" basis. The entire risk as to their quality
+# and performance is with the user. Should either the software or this document proves defective, the
+# user assumes the entire cost of all necessary servicing, repair, or correction. AVL and its distributors
+# will not be liable for direct, indirect, incidental, or consequential damages resulting from any defect in
+# the software or this document, even if they have been advised of the possibility of such damage.
+#___________________________________________________________________________
+__author__="Carsten Schmalhorst"
+__date__ ="$Jun 5, 2012 10:25:21 AM$"
+
+C_DUM = "__partnerDummy"
+C_FACE = "FaceSelection"
+
+if __name__ == "__main__":
+
+    mesh = GuiGetActiveMesh()
+    if len(mesh)>0:
+        selections = SelNames(mesh)
+
+        if C_DUM in selections:
+            SelClearSel(mesh, C_DUM )
+            selections.remove(C_DUM)
+        else:
+            SelNewSel(mesh, C_DUM, C_FACE)
+        d = []
+        for sel in selections:
+            if SelType(mesh,sel)  == C_FACE and (sel.startswith("BND") or sel.startswith("BC")):
+                d.append(sel)
+        selections = d
+        print selections
+
+        while len(selections) > 0:
+            sel = selections.pop()
+            for partnerSel in selections:
+                if not partnerSel == sel:
+                    SelSel_AND_Sel(mesh, C_DUM, sel, partnerSel)
+                    if SelGetSizeofRegion(mesh, C_DUM)>0:
+                        SelReNameSel(mesh, C_DUM, "_DoubleDef_"+sel + "_and_" + partnerSel)
+                        SelNewSel(mesh, C_DUM, C_FACE)
+        SelDeleteSel(mesh, C_DUM)
+    else:
+        GuiErrorMessage( "------------------------------------------" )
+        GuiErrorMessage( "------------------------------------------" )
+        GuiErrorMessage( "---------- no mesh selected!!!! ----------" )
+        GuiErrorMessage( "------------------------------------------" )
+        GuiErrorMessage( "------------------------------------------" )
+    GuiUpdate(0,0);
